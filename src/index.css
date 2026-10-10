@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-space: #070B12;
+    --surface-space: #0D131D;
+    --surface-hover: #141C2A;
+    --border-hairline: rgba(255, 255, 255, 0.08);
+    --border-subtle: #1C2739;
+    --accent-cyan: #38BDF8;
+    --accent-teal: #14B8A6;
+    --status-nominal: #10B981;
+    --status-warning: #F59E0B;
+    --status-critical: #EF4444;
+  }
+
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-space);
+    color: #E2E8F0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* JetBrains Mono for numbers, coordinates, timestamps, and IDs */
+  .font-mono,
+  .tabular-nums {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-feature-settings: "tnum";
+  }
+}
+
+/* Custom aerospace minimalist scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #070B12;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Restrained animations */
+.transition-aerospace {
+  transition-property: color, background-color, border-color, opacity, transform;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
