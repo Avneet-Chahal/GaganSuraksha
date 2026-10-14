@@ -25,7 +25,8 @@ export const ConjunctionsPage: React.FC = () => {
     refetchInterval: 30000,
   });
 
-  const conjunctions = data?.data || [];
+  const conjunctions = useMemo(() => data?.data || [], [data?.data]);
+  const isDemo = data?.isDemo || (conjunctions.length > 0 && conjunctions[0]?.dataSource === 'demo');
 
   // Filter and sort conjunctions
   const filteredConjunctions = useMemo(() => {
@@ -82,9 +83,14 @@ export const ConjunctionsPage: React.FC = () => {
             <h1 className="text-xl font-semibold text-white tracking-tight">
               Conjunction Assessment
             </h1>
+            {isDemo && (
+              <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                Demo data
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-400 max-w-xl">
-            Orbital close approaches detected by NETRA optical and radar surveillance. Collision risk probabilities are calibrated with ISRO SSA drag and covariance correction models.
+            Orbital close approaches detected from public TLE surveillance. Collision risk probabilities are calibrated with Gagan Suraksha ML drag and covariance correction models.
           </p>
         </div>
 
@@ -264,17 +270,17 @@ export const ConjunctionsPage: React.FC = () => {
                       <div className="flex flex-col">
                         <span
                           className={`font-semibold ${
-                            conj.calibratedProbability > 1e-4
+                            (conj.pcMlCalibrated ?? conj.calibratedProbability) > 1e-4
                               ? 'text-rose-400'
-                              : conj.calibratedProbability > 1e-5
+                              : (conj.pcMlCalibrated ?? conj.calibratedProbability) > 1e-5
                               ? 'text-amber-400'
                               : 'text-slate-300'
                           }`}
                         >
-                          {conj.calibratedProbability.toExponential(2)}
+                          {(conj.pcMlCalibrated ?? conj.calibratedProbability).toExponential(2)}
                         </span>
                         <span className="text-[10px] text-slate-500">
-                          raw: {conj.rawProbability.toExponential(2)}
+                          raw: {(conj.pcRaw ?? conj.rawProbability).toExponential(2)}
                         </span>
                       </div>
                     </td>

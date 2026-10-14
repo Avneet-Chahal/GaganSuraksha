@@ -55,7 +55,7 @@ export interface ConjunctionEvent {
   crossTrackMissKm: number;
   relativeVelocityKmS: number;
   rawProbability: number; // Classical Foster 2D/3D Pc
-  calibratedProbability: number; // ISRO NETRA ML-corrected Pc
+  calibratedProbability: number; // ML-corrected Pc (Gagan Suraksha)
   riskLevel: RiskLevel;
   primaryCovariance: {
     radialSigmaM: number;
@@ -71,6 +71,17 @@ export interface ConjunctionEvent {
   recommendedDeltaVMS?: number;
   maneuverFuelCostKg?: number;
   dataFreshnessUtc: string;
+  // ML Fields
+  pcRaw?: number;
+  pcMl?: number;
+  pcMlCalibrated?: number;
+  mlAvailable?: boolean;
+  modelVersion?: string;
+  covariance?: {
+    primary: [number, number, number];
+    secondary: [number, number, number];
+  };
+  dataSource?: 'real' | 'demo';
 }
 
 export interface ManeuverRequest {
@@ -97,6 +108,8 @@ export interface ManeuverResult {
     ispSeconds: number;
     burnLeadTimeHours: number;
   };
+  recommendation?: 'WAIT_MONITOR' | 'MANEUVER_RECOMMENDED';
+  noNewConjunction?: boolean;
 }
 
 export interface AnalyticsMetrics {
@@ -115,12 +128,64 @@ export interface AnalyticsMetrics {
     observedFrequencyRaw: number;
     observedFrequencyMl: number;
     ideal: number;
+    eventCount?: number;
   }[];
   positionErrorByHorizon: {
     dayHorizon: number; // 1 to 7 days
     sgp4ErrorKm: number;
     mlCorrectedErrorKm: number;
+    sgp4P10Km?: number;
+    sgp4P90Km?: number;
+    mlCorrectedP10Km?: number;
+    mlCorrectedP90Km?: number;
   }[];
+  isDemo?: boolean;
+  // Additive ML & Backtest fields
+  errorByHorizon?: {
+    dayHorizon: number;
+    sampleSize: number;
+    medianKm: number;
+    p10Km: number;
+    p90Km: number;
+    baselineMedianKm: number;
+    baselineP90Km: number;
+    improvementPct: number;
+  }[];
+  alertsPerMonth?: {
+    month: string;
+    baseline: number;
+    mlCorrected: number;
+    reductionPct: number;
+  }[];
+  missedEvents?: number;
+  reliabilityBins?: {
+    forecastBin: number;
+    observedFrequencyRaw: number;
+    observedFrequencyMl: number;
+    ideal: number;
+    eventCount?: number;
+  }[];
+  referenceTruth?: string;
+  dateRange?: string;
+  dataSource?: 'real' | 'demo';
+  modelVersion?: string;
+}
+
+export interface MlHealthStatus {
+  status: 'ONLINE' | 'UNAVAILABLE';
+  modelVersion: string;
+  trainingDates: {
+    trainStartUtc?: string;
+    trainEndUtc?: string;
+    valStartUtc?: string;
+    valEndUtc?: string;
+    testStartUtc?: string;
+    testEndUtc?: string;
+    trainedAtUtc?: string;
+  } | null;
+  mlAvailable: boolean;
+  referenceTruth: string;
+  dataSource: string;
 }
 
 export interface WatchlistSatelliteSetting {

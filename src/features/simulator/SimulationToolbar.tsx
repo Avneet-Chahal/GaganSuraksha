@@ -6,7 +6,7 @@ import {
   CircleDot,
   Radio,
   Filter,
-  Database,
+  Cpu,
 } from 'lucide-react';
 import { useSimulationStore } from '../../store/simulationStore';
 import type { RegimeFilter } from '../../store/simulationStore';
@@ -16,16 +16,16 @@ export const SimulationToolbar: React.FC = () => {
   const showDebris = useSimulationStore((s) => s.showDebris);
   const showSatellites = useSimulationStore((s) => s.showSatellites);
   const orbitRegimeFilter = useSimulationStore((s) => s.orbitRegimeFilter);
+  const useMlCorrectedOrbits = useSimulationStore((s) => s.useMlCorrectedOrbits);
   const selectedObjectId = useSimulationStore((s) => s.selectedObjectId);
   const focusedObjectId = useSimulationStore((s) => s.focusedObjectId);
-  const isDemoMode = useSimulationStore((s) => s.isDemoMode);
 
   const toggleOrbits = useSimulationStore((s) => s.toggleOrbits);
   const toggleDebris = useSimulationStore((s) => s.toggleDebris);
   const toggleSatellites = useSimulationStore((s) => s.toggleSatellites);
+  const toggleMlCorrectedOrbits = useSimulationStore((s) => s.toggleMlCorrectedOrbits);
   const setRegimeFilter = useSimulationStore((s) => s.setRegimeFilter);
   const focusObject = useSimulationStore((s) => s.focusObject);
-  const setIsDemoMode = useSimulationStore((s) => s.setIsDemoMode);
 
   const cycleRegime = () => {
     const list: RegimeFilter[] = ['ALL', 'LEO', 'MEO', 'GEO'];
@@ -101,6 +101,23 @@ export const SimulationToolbar: React.FC = () => {
         </span>
       </button>
 
+      {/* Toggle ML-corrected orbits */}
+      <button
+        onClick={toggleMlCorrectedOrbits}
+        title={`ML-corrected orbits: ${useMlCorrectedOrbits ? 'Active' : 'Inactive'} (Click to toggle)`}
+        aria-label="ML-corrected orbits"
+        className={`w-9 h-9 rounded flex flex-col items-center justify-center transition-aerospace relative ${
+          useMlCorrectedOrbits
+            ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-500/50 shadow-sm'
+            : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+        }`}
+      >
+        <Cpu className="w-4 h-4" />
+        <span className="text-[8px] font-mono leading-none mt-0.5">
+          {useMlCorrectedOrbits ? 'ML' : 'RAW'}
+        </span>
+      </button>
+
       {/* Toggle Satellites */}
       <button
         onClick={toggleSatellites}
@@ -139,19 +156,6 @@ export const SimulationToolbar: React.FC = () => {
         <span className="text-[8px] font-mono font-semibold text-cyan-400 leading-none mt-0.5">
           {orbitRegimeFilter}
         </span>
-      </button>
-
-      {/* Toggle Demo Mode Indicator */}
-      <button
-        onClick={() => setIsDemoMode(!isDemoMode)}
-        title={isDemoMode ? 'Demo data active (Click to simulate live)' : 'Live data feed active'}
-        className={`w-9 h-9 rounded flex items-center justify-center transition-aerospace ${
-          isDemoMode
-            ? 'text-amber-400 hover:bg-slate-800'
-            : 'text-emerald-400 hover:bg-slate-800'
-        }`}
-      >
-        <Database className="w-3.5 h-3.5" />
       </button>
     </aside>
   );

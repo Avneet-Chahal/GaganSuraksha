@@ -7,6 +7,14 @@ import { ALL_SATELLITES_CATALOG } from '../../api/mockData';
 import { propagateTleAtTime, eciKmToSceneCoords } from '../../api/sgp4Service';
 import { useSimulationStore } from '../../store/simulationStore';
 
+function resetCameraView(camera: THREE.Camera, controls?: OrbitControlsImpl | null) {
+  if (controls) {
+    controls.target.set(0, 0, 0);
+  }
+  camera.position.set(0, 3.2, 5.8);
+  camera.lookAt(0, 0, 0);
+}
+
 export const CameraController: React.FC = () => {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const { camera } = useThree();
@@ -17,6 +25,17 @@ export const CameraController: React.FC = () => {
   useEffect(() => {
     camera.position.set(0, 3.2, 5.8);
     camera.lookAt(0, 0, 0);
+  }, [camera]);
+
+  // Listen to reset-3d-view window event dispatched by toolbar
+  useEffect(() => {
+    const handleReset = () => {
+      resetCameraView(camera, controlsRef.current);
+    };
+    window.addEventListener('reset-3d-view', handleReset);
+    return () => {
+      window.removeEventListener('reset-3d-view', handleReset);
+    };
   }, [camera]);
 
   // Smoothly follow focused object if set
@@ -49,11 +68,3 @@ export const CameraController: React.FC = () => {
     />
   );
 };
-
-export function resetCameraView(camera: THREE.Camera, controls?: OrbitControlsImpl | null) {
-  if (controls) {
-    controls.target.set(0, 0, 0);
-  }
-  camera.position.set(0, 3.2, 5.8);
-  camera.lookAt(0, 0, 0);
-}

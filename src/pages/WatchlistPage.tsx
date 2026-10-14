@@ -63,6 +63,11 @@ export const WatchlistPage: React.FC = () => {
             <h1 className="text-xl font-semibold text-white tracking-tight">
               Asset Watchlist &amp; Alert Configuration
             </h1>
+            {dataSourcesData?.isDemo && (
+              <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                Demo data
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-400 max-w-xl">
             Configure Indian space assets under active collision monitoring, custom screening thresholds, and multi-channel telemetry dispatches.
@@ -333,7 +338,7 @@ export const WatchlistPage: React.FC = () => {
             <Database className="w-4 h-4 text-cyan-400" />
             Surveillance Data Sources &amp; Telemetry Freshness
           </h2>
-          <span className="text-xs text-slate-400">ISRO NETRA Sensor Ingestion</span>
+          <span className="text-xs text-slate-400">Public TLE Surveillance Ingestion</span>
         </div>
 
         <div className="overflow-x-auto">

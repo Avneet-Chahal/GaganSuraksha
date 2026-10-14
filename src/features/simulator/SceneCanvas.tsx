@@ -31,6 +31,8 @@ function SimulationTimeTicker() {
 }
 
 export const SceneCanvas: React.FC = () => {
+  const selectObject = useSimulationStore((s) => s.selectObject);
+
   return (
     <div className="relative w-full h-full bg-[#070B12] overflow-hidden select-none">
       {/* Simulation time ticker running via requestAnimationFrame */}
@@ -44,12 +46,7 @@ export const SceneCanvas: React.FC = () => {
           powerPreference: 'high-performance',
           alpha: false,
         }}
-        onPointerDown={(e) => {
-          // Deselect if clicking on empty background
-          if (e.target === e.currentTarget) {
-            useSimulationStore.getState().selectObject(null);
-          }
-        }}
+        onPointerMissed={() => selectObject(null)}
       >
         <color attach="background" args={['#070B12']} />
 

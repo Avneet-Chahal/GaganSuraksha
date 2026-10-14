@@ -46,9 +46,11 @@ export const SimulatorView: React.FC = () => {
 
       {/* Small Demo Badge in bottom-left if in demo mode */}
       {isDemoMode && (
-        <div className="hidden md:flex absolute bottom-18 left-4 z-10 items-center gap-1.5 px-2 py-0.5 rounded bg-[#0D131D]/80 border border-white/[0.06] text-[10px] font-mono text-slate-400">
+        <div className="hidden md:flex absolute bottom-18 left-4 z-10 items-center gap-1.5 px-2.5 py-1 rounded bg-[#0D131D]/90 border border-amber-500/20 text-[11px] font-mono text-amber-300">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-          <span>SGP4 Propagator • Netra Simulation Mode</span>
+          <span className="font-semibold">Demo data</span>
+          <span className="text-slate-500">•</span>
+          <span className="text-slate-400">SGP4 Propagator</span>
         </div>
       )}
     </main>

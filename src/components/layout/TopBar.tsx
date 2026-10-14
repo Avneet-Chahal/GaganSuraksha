@@ -1,13 +1,39 @@
-import React from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Orbit, ShieldAlert, Cpu, BarChart3, Radio, Database } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useUtcClock } from '../../hooks/useUtcClock';
 import { DataFreshness } from '../common/DataFreshness';
 import { useSimulationStore } from '../../store/simulationStore';
+import { fetchConjunctions } from '../../api/client';
 
 export const TopBar: React.FC = () => {
   const utcClock = useUtcClock();
-  const isDemoMode = useSimulationStore((s) => s.isDemoMode);
+  const setIsDemoMode = useSimulationStore((s) => s.setIsDemoMode);
+
+  // Poll conjunctions feed to track real freshness & demo status
+  const { data, dataUpdatedAt, isFetching, refetch } = useQuery({
+    queryKey: ['conjunctions'],
+    queryFn: fetchConjunctions,
+    refetchInterval: 30000,
+  });
+
+  const isDemo = data ? data.isDemo : true;
+
+  // Sync derived isDemo to simulation store
+  useEffect(() => {
+    setIsDemoMode(isDemo);
+  }, [isDemo, setIsDemoMode]);
+
+  // Format real last updated timestamp from TanStack Query
+  const lastUpdatedFormatted = useMemo(() => {
+    if (!dataUpdatedAt) return '12:00 UTC';
+    const d = new Date(dataUpdatedAt);
+    const hours = String(d.getUTCHours()).padStart(2, '0');
+    const minutes = String(d.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(d.getUTCSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds} UTC`;
+  }, [dataUpdatedAt]);
 
   const navItems = [
     { to: '/simulator', label: 'Simulator', icon: Orbit },
@@ -28,9 +54,6 @@ export const TopBar: React.FC = () => {
           <div className="flex items-baseline gap-2">
             <span className="text-sm font-semibold tracking-wide text-slate-100">
               Gagan Suraksha
-            </span>
-            <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-500/90 font-medium hidden md:inline">
-              ISRO ISTRAC • NETRA SSA
             </span>
           </div>
         </NavLink>
@@ -59,13 +82,19 @@ export const TopBar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Right controls: UTC Clock, Data Freshness, Demo Data Badge */}
+      {/* Right controls: Data Freshness, Demo Data Badge, Live UTC Clock */}
       <div className="flex items-center gap-4 text-xs font-mono">
-        {/* Data freshness */}
-        <DataFreshness lastUpdatedUtc="12:15 UTC" source="NETRA" />
+        {/* Real data freshness and demo state */}
+        <DataFreshness
+          lastUpdatedUtc={lastUpdatedFormatted}
+          source="NETRA"
+          isDemo={isDemo}
+          isFetching={isFetching}
+          onRefresh={() => refetch()}
+        />
 
         {/* Demo Mode Badge */}
-        {isDemoMode && (
+        {isDemo && (
           <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 text-[11px] font-mono">
             <Database className="w-2.5 h-2.5" />
             Demo data

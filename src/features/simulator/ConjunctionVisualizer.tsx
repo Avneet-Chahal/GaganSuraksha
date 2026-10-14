@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { Html } from '@react-three/drei';
 import { CONJUNCTION_EVENTS } from '../../api/mockData';
@@ -88,6 +88,46 @@ export const ConjunctionVisualizer: React.FC = () => {
     });
     return new THREE.Line(geom, mat);
   }, [primaryTcaCoords, secondaryTcaCoords]);
+
+  // Clean up geometries and materials on unmount/recalculation
+  useEffect(() => {
+    return () => {
+      primaryLineObj?.geometry.dispose();
+      if (primaryLineObj?.material) {
+        if (Array.isArray(primaryLineObj.material)) {
+          primaryLineObj.material.forEach((m) => m.dispose());
+        } else {
+          primaryLineObj.material.dispose();
+        }
+      }
+    };
+  }, [primaryLineObj]);
+
+  useEffect(() => {
+    return () => {
+      secondaryLineObj?.geometry.dispose();
+      if (secondaryLineObj?.material) {
+        if (Array.isArray(secondaryLineObj.material)) {
+          secondaryLineObj.material.forEach((m) => m.dispose());
+        } else {
+          secondaryLineObj.material.dispose();
+        }
+      }
+    };
+  }, [secondaryLineObj]);
+
+  useEffect(() => {
+    return () => {
+      separationLineObj?.geometry.dispose();
+      if (separationLineObj?.material) {
+        if (Array.isArray(separationLineObj.material)) {
+          separationLineObj.material.forEach((m) => m.dispose());
+        } else {
+          separationLineObj.material.dispose();
+        }
+      }
+    };
+  }, [separationLineObj]);
 
   if (!conjunction || !primaryLineObj || !secondaryLineObj || !separationLineObj) {
     return null;

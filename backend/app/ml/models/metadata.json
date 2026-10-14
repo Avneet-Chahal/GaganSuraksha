@@ -1,0 +1,145 @@
+{
+  "model_version": "v1.0.0",
+  "trained_at_utc": "2026-10-12T18:33:32.761828+00:00",
+  "reference_truth": "Later TLE epoch state (SGP4 propagation at epoch tB)",
+  "data_source": "CelesTrak historical TLE archives & SpaceData (SW-All.csv, SW-Last5Years.csv)",
+  "altitude_bounds_km": [
+    400.0,
+    900.0
+  ],
+  "training_date_bounds": {
+    "train_start_utc": "1986-02-22T01:49:50.517703+00:00",
+    "train_end_utc": "2003-11-15T21:37:44.672729+00:00",
+    "val_start_utc": "1988-03-23T13:00:40.610026+00:00",
+    "val_end_utc": "2003-11-19T05:01:08.744722+00:00",
+    "test_start_utc": "1988-03-23T21:35:07.765996+00:00",
+    "test_end_utc": "2004-03-04T12:02:24.299237+00:00"
+  },
+  "features": [
+    "horizon_hours",
+    "altitude_km",
+    "inclination_deg",
+    "eccentricity",
+    "bstar",
+    "mean_motion_rev_day",
+    "f107_daily",
+    "f107_81d_avg",
+    "kp_epoch",
+    "ap_epoch",
+    "kp_mean_horizon",
+    "ap_mean_horizon",
+    "object_type_code"
+  ],
+  "targets": [
+    "residual_radial_km",
+    "residual_in_track_km",
+    "residual_cross_track_km"
+  ],
+  "sample_sizes": {
+    "total_pairs": 3458,
+    "train_pairs": 2421,
+    "val_pairs": 506,
+    "test_pairs": 531,
+    "unique_satellites": 25
+  },
+  "evaluation_metrics": {
+    "overall": {
+      "test_sample_size": 531,
+      "baseline_median_km": 3.007,
+      "corrected_median_km": 4.738,
+      "overall_improvement_pct": -57.6
+    },
+    "by_horizon": {
+      "day_1": {
+        "horizon_hours_range": [
+          12.0,
+          36.0
+        ],
+        "sample_size": 91,
+        "baseline_median_km": 0.899,
+        "baseline_p90_km": 36.271,
+        "corrected_median_km": 2.519,
+        "corrected_p90_km": 27.163,
+        "improvement_median_pct": -180.2
+      },
+      "day_2": {
+        "horizon_hours_range": [
+          36.0,
+          60.0
+        ],
+        "sample_size": 86,
+        "baseline_median_km": 2.119,
+        "baseline_p90_km": 67.511,
+        "corrected_median_km": 3.6,
+        "corrected_p90_km": 55.97,
+        "improvement_median_pct": -69.9
+      },
+      "day_3": {
+        "horizon_hours_range": [
+          60.0,
+          84.0
+        ],
+        "sample_size": 113,
+        "baseline_median_km": 3.087,
+        "baseline_p90_km": 51.585,
+        "corrected_median_km": 3.038,
+        "corrected_p90_km": 55.077,
+        "improvement_median_pct": 1.6
+      },
+      "day_4": {
+        "horizon_hours_range": [
+          84.0,
+          108.0
+        ],
+        "sample_size": 96,
+        "baseline_median_km": 4.416,
+        "baseline_p90_km": 264.313,
+        "corrected_median_km": 4.379,
+        "corrected_p90_km": 127.237,
+        "improvement_median_pct": 0.8
+      },
+      "day_5": {
+        "horizon_hours_range": [
+          108.0,
+          132.0
+        ],
+        "sample_size": 79,
+        "baseline_median_km": 6.855,
+        "baseline_p90_km": 882.437,
+        "corrected_median_km": 8.942,
+        "corrected_p90_km": 158.311,
+        "improvement_median_pct": -30.4
+      },
+      "day_6": {
+        "horizon_hours_range": [
+          132.0,
+          156.0
+        ],
+        "sample_size": 51,
+        "baseline_median_km": 124.813,
+        "baseline_p90_km": 1961.671,
+        "corrected_median_km": 55.523,
+        "corrected_p90_km": 795.037,
+        "improvement_median_pct": 55.5
+      },
+      "day_7": {
+        "horizon_hours_range": [
+          156.0,
+          180.0
+        ],
+        "sample_size": 15,
+        "baseline_median_km": 85.401,
+        "baseline_p90_km": 1052.677,
+        "corrected_median_km": 38.696,
+        "corrected_p90_km": 359.882,
+        "improvement_median_pct": 54.7
+      }
+    }
+  },
+  "assumptions_and_limitations": [
+    "Analytical SGP4 propagator used for baseline and reference evaluation.",
+    "Later TLEs serve as reference truth in the absence of high-precision radar/numerical ephemeris.",
+    "Time-based split enforces zero future data leakage.",
+    "Prototype research model; operational mission maneuvers require high-precision numerical orbit determination."
+  ]
+}

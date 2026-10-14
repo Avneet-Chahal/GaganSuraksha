@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useQuery } from '@tanstack/react-query';
 import type {
   SatelliteRecord,
   TrajectoryResponse,
@@ -7,6 +8,7 @@ import type {
   ManeuverResult,
   AnalyticsMetrics,
   DataSourceStatus,
+  MlHealthStatus,
 } from './types';
 import {
   ALL_SATELLITES_CATALOG,
@@ -20,7 +22,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 4000,
+  timeout: 5000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -54,18 +56,25 @@ export async function fetchTrajectories(
   satelliteIds: string[],
   startUtc: string,
   endUtc: string,
-  stepSeconds = 120
+  stepSeconds = 120,
+  corrected = false
 ): Promise<{ data: TrajectoryResponse[]; isDemo: boolean }> {
   try {
     const idsParam = satelliteIds.join(',');
     const res = await apiClient.get<TrajectoryResponse[]>('/trajectories', {
-      params: { ids: idsParam, start: startUtc, end: endUtc, step: stepSeconds },
+      params: {
+        ids: idsParam,
+        start: startUtc,
+        end: endUtc,
+        step: stepSeconds,
+        corrected: corrected ? true : undefined,
+      },
     });
     if (res.data && Array.isArray(res.data) && res.data.length > 0) {
       return { data: res.data, isDemo: false };
     }
   } catch {
-    // Fallback
+    // Fallback to client-side SGP4
   }
 
   const startMs = new Date(startUtc).getTime();
@@ -93,11 +102,14 @@ export async function fetchConjunctions(): Promise<{ data: ConjunctionEvent[]; i
   try {
     const res = await apiClient.get<ConjunctionEvent[]>('/conjunctions');
     if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-      return { data: res.data, isDemo: false };
+      const isMock = res.data[0]?.dataSource === 'demo';
+      demoDataActive = isMock;
+      return { data: res.data, isDemo: isMock };
     }
   } catch {
-    // Fallback
+    // Fallback to mock data
   }
+  demoDataActive = true;
   return { data: CONJUNCTION_EVENTS, isDemo: true };
 }
 
@@ -105,10 +117,11 @@ export async function fetchConjunctionById(id: string): Promise<{ data: Conjunct
   try {
     const res = await apiClient.get<ConjunctionEvent>(`/conjunctions/${id}`);
     if (res.data && res.data.id) {
-      return { data: res.data, isDemo: false };
+      const isMock = res.data.dataSource === 'demo';
+      return { data: res.data, isDemo: isMock };
     }
   } catch {
-    // Fallback
+    // Fallback to mock event
   }
   const found = CONJUNCTION_EVENTS.find((c) => c.id === id) || CONJUNCTION_EVENTS[0];
   return { data: found, isDemo: true };
@@ -152,6 +165,8 @@ export async function planManeuver(req: ManeuverRequest): Promise<{ data: Maneuv
     deltaVMs: dV,
     fuelCostKg: Number(fuelCostKg.toFixed(3)),
     status: isOptimal ? 'OPTIMAL' : isAcceptable ? 'ACCEPTABLE' : 'SUBOPTIMAL',
+    recommendation: isOptimal || isAcceptable ? 'MANEUVER_RECOMMENDED' : 'WAIT_MONITOR',
+    noNewConjunction: true,
     summary:
       dV === 0
         ? 'No maneuver planned. Current close approach geometry retained.'
@@ -172,12 +187,38 @@ export async function fetchMetrics(): Promise<{ data: AnalyticsMetrics; isDemo: 
   try {
     const res = await apiClient.get<AnalyticsMetrics>('/metrics');
     if (res.data) {
-      return { data: res.data, isDemo: false };
+      const isMock = res.data.isDemo ?? res.data.dataSource === 'demo';
+      return { data: res.data, isDemo: Boolean(isMock) };
     }
   } catch {
     // Fallback
   }
   return { data: MOCK_ANALYTICS_METRICS, isDemo: true };
+}
+
+export async function fetchMlHealth(): Promise<{ data: MlHealthStatus; isDemo: boolean }> {
+  try {
+    const res = await apiClient.get<MlHealthStatus>('/health/ml');
+    if (res.data) {
+      return { data: res.data, isDemo: false };
+    }
+  } catch {
+    // Fallback
+  }
+  return {
+    data: {
+      status: 'ONLINE',
+      modelVersion: 'v1.0.0',
+      trainingDates: {
+        trainStartUtc: '1986-02-22T01:49:50Z',
+        trainEndUtc: '2003-11-15T21:37:44Z',
+      },
+      mlAvailable: true,
+      referenceTruth: 'Later TLE epoch state (public TLE backtest)',
+      dataSource: 'public TLE backtest',
+    },
+    isDemo: true,
+  };
 }
 
 export async function fetchDataSources(): Promise<{ data: DataSourceStatus[]; isDemo: boolean }> {
@@ -190,4 +231,63 @@ export async function fetchDataSources(): Promise<{ data: DataSourceStatus[]; is
     // Fallback
   }
   return { data: MOCK_DATA_SOURCES, isDemo: true };
+}
+
+// =====================================================================
+// TanStack Query Hooks (quiet loading, error, and retry states)
+// =====================================================================
+
+export function useConjunctions() {
+  return useQuery({
+    queryKey: ['conjunctions'],
+    queryFn: fetchConjunctions,
+    refetchInterval: 30000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useConjunction(id: string | undefined) {
+  return useQuery({
+    queryKey: ['conjunction', id],
+    queryFn: () => (id ? fetchConjunctionById(id) : Promise.reject(new Error('No ID'))),
+    enabled: Boolean(id),
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useMetrics() {
+  return useQuery({
+    queryKey: ['metrics'],
+    queryFn: fetchMetrics,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useMlHealth() {
+  return useQuery({
+    queryKey: ['mlHealth'],
+    queryFn: fetchMlHealth,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useTrajectories(
+  satelliteIds: string[],
+  startUtc: string,
+  endUtc: string,
+  stepSeconds = 120,
+  corrected = false
+) {
+  return useQuery({
+    queryKey: ['trajectories', satelliteIds.join(','), startUtc, endUtc, stepSeconds, corrected],
+    queryFn: () => fetchTrajectories(satelliteIds, startUtc, endUtc, stepSeconds, corrected),
+    enabled: satelliteIds.length > 0,
+    staleTime: 60000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
 }

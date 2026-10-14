@@ -5,25 +5,47 @@ import { ALL_SATELLITES_CATALOG, CONJUNCTION_EVENTS } from '../../api/mockData';
 import { useSimulationStore } from '../../store/simulationStore';
 import { RiskBadge } from '../../components/common/RiskBadge';
 import { formatUtcDateTime } from '../../hooks/useUtcClock';
+import { useConjunctions, useConjunction } from '../../api/client';
 
 export const SelectedObjectPanel: React.FC = () => {
   const navigate = useNavigate();
   const selectedObjectId = useSimulationStore((s) => s.selectedObjectId);
+  const highlightedConjunctionId = useSimulationStore((s) => s.highlightedConjunctionId);
   const rightPanelOpen = useSimulationStore((s) => s.rightPanelOpen);
   const setRightPanelOpen = useSimulationStore((s) => s.setRightPanelOpen);
   const selectObject = useSimulationStore((s) => s.selectObject);
   const focusObject = useSimulationStore((s) => s.focusObject);
   const highlightConjunction = useSimulationStore((s) => s.highlightConjunction);
+  const useMlCorrectedOrbits = useSimulationStore((s) => s.useMlCorrectedOrbits);
+
+  // Live conjunction queries
+  const { data: conjunctionsData } = useConjunctions();
+  const conjunctionsList = conjunctionsData?.data || CONJUNCTION_EVENTS;
+
+  // Find active close approach event involving this object or highlighted
+  const activeEventSummary = (() => {
+    if (!selectedObjectId) return undefined;
+    if (highlightedConjunctionId) {
+      const match = conjunctionsList.find((c) => c.id === highlightedConjunctionId);
+      if (match && (match.primarySat.id === selectedObjectId || match.secondarySat.id === selectedObjectId)) {
+        return match;
+      }
+    }
+    return conjunctionsList.find(
+      (c) => c.primarySat.id === selectedObjectId || c.secondarySat.id === selectedObjectId
+    );
+  })();
+
+  // Fetch real conjunction detail if event exists
+  const { data: detailData } = useConjunction(activeEventSummary?.id);
 
   if (!rightPanelOpen || !selectedObjectId) return null;
 
   const obj = ALL_SATELLITES_CATALOG.find((s) => s.id === selectedObjectId);
   if (!obj) return null;
 
-  // Check if there is an active close approach event involving this object
-  const closeApproachEvent = CONJUNCTION_EVENTS.find(
-    (c) => c.primarySat.id === obj.id || c.secondarySat.id === obj.id
-  );
+  const closeApproachEvent = detailData?.data || activeEventSummary;
+  const isDemo = detailData?.isDemo || closeApproachEvent?.dataSource === 'demo' || conjunctionsData?.isDemo;
 
   const isPrimary = closeApproachEvent?.primarySat.id === obj.id;
   const targetCounterpart = isPrimary
@@ -51,6 +73,11 @@ export const SelectedObjectPanel: React.FC = () => {
             >
               {obj.type}
             </span>
+            {useMlCorrectedOrbits && (
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                ML Orbit
+              </span>
+            )}
           </div>
           <div className="text-xs text-slate-400 font-mono mt-0.5 flex items-center gap-2">
             <span>NORAD #{obj.noradId}</span>
@@ -120,7 +147,14 @@ export const SelectedObjectPanel: React.FC = () => {
               <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
               Close Approach Alert
             </span>
-            <RiskBadge level={closeApproachEvent.riskLevel} size="sm" />
+            <div className="flex items-center gap-1.5">
+              {isDemo && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                  Demo data
+                </span>
+              )}
+              <RiskBadge level={closeApproachEvent.riskLevel} size="sm" />
+            </div>
           </div>
 
           <div className="text-xs text-slate-300">
@@ -150,13 +184,13 @@ export const SelectedObjectPanel: React.FC = () => {
               <div>
                 <span className="text-slate-500 text-[9px] block">CALIBRATED Pc</span>
                 <span className="text-amber-300 font-semibold">
-                  {closeApproachEvent.calibratedProbability.toExponential(2)}
+                  {(closeApproachEvent.pcMlCalibrated ?? closeApproachEvent.calibratedProbability).toExponential(2)}
                 </span>
               </div>
               <div className="text-right">
                 <span className="text-slate-500 text-[9px] block">RAW Pc</span>
                 <span className="text-slate-400 line-through">
-                  {closeApproachEvent.rawProbability.toExponential(2)}
+                  {(closeApproachEvent.pcRaw ?? closeApproachEvent.rawProbability).toExponential(2)}
                 </span>
               </div>
             </div>
@@ -181,7 +215,7 @@ export const SelectedObjectPanel: React.FC = () => {
       ) : (
         <div className="rounded border border-emerald-500/20 bg-emerald-950/10 p-2.5 flex items-center gap-2 text-xs text-emerald-400 font-mono">
           <ShieldCheck className="w-4 h-4 shrink-0" />
-          <span>Nominal orbit trajectory. No predicted close approaches &lt; 5.0 km within 7 days.</span>
+          <span>No conjunction in the current screening results ({conjunctionsList.length} events loaded).</span>
         </div>
       )}
     </aside>

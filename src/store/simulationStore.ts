@@ -24,6 +24,7 @@ interface SimulationState {
   showDebris: boolean;
   showSatellites: boolean;
   orbitRegimeFilter: RegimeFilter;
+  useMlCorrectedOrbits: boolean;
   isDemoMode: boolean;
   rightPanelOpen: boolean;
 
@@ -44,6 +45,8 @@ interface SimulationState {
   toggleDebris: () => void;
   toggleSatellites: () => void;
   setRegimeFilter: (filter: RegimeFilter) => void;
+  toggleMlCorrectedOrbits: () => void;
+  setUseMlCorrectedOrbits: (val: boolean) => void;
   setIsDemoMode: (isDemo: boolean) => void;
   setRightPanelOpen: (open: boolean) => void;
 }
@@ -64,6 +67,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   showDebris: true,
   showSatellites: true,
   orbitRegimeFilter: 'ALL',
+  useMlCorrectedOrbits: false,
   isDemoMode: true,
   rightPanelOpen: true,
 
@@ -142,6 +146,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   toggleSatellites: () => set((state) => ({ showSatellites: !state.showSatellites })),
 
   setRegimeFilter: (filter) => set({ orbitRegimeFilter: filter }),
+
+  toggleMlCorrectedOrbits: () =>
+    set((state) => ({ useMlCorrectedOrbits: !state.useMlCorrectedOrbits })),
+
+  setUseMlCorrectedOrbits: (val) => set({ useMlCorrectedOrbits: val }),
 
   setIsDemoMode: (isDemo) => set({ isDemoMode: isDemo }),
 

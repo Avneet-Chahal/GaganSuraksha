@@ -5,6 +5,19 @@ export const EARTH_RADIUS_KM = 6371.0;
 export const SCENE_EARTH_RADIUS = 2.0;
 export const KM_TO_SCENE_SCALE = SCENE_EARTH_RADIUS / EARTH_RADIUS_KM;
 
+// Module-level cache for parsed TLE SatRec objects
+const satrecCache = new Map<string, satellite.SatRec>();
+
+export function getCachedSatrec(line1: string, line2: string): satellite.SatRec {
+  const key = `${line1.trim()}|${line2.trim()}`;
+  let satrec = satrecCache.get(key);
+  if (!satrec) {
+    satrec = satellite.twoline2satrec(line1.trim(), line2.trim());
+    satrecCache.set(key, satrec);
+  }
+  return satrec;
+}
+
 /**
  * Converts ECI coordinates in km to 3D Scene space coordinates.
  */
@@ -33,7 +46,7 @@ export function propagateTleAtTime(
   timeMs: number
 ): { x: number; y: number; z: number; vx: number; vy: number; vz: number; altitudeKm: number } | null {
   try {
-    const satrec = satellite.twoline2satrec(line1.trim(), line2.trim());
+    const satrec = getCachedSatrec(line1, line2);
     const date = new Date(timeMs);
     const positionAndVelocity = satellite.propagate(satrec, date);
 
@@ -72,7 +85,7 @@ export function generateOrbitPath(
 ): [number, number, number][] {
   const points: [number, number, number][] = [];
   try {
-    const satrec = satellite.twoline2satrec(line1.trim(), line2.trim());
+    const satrec = getCachedSatrec(line1, line2);
     const revsPerDay = satrec.no ? (satrec.no * 1440) / (2 * Math.PI) : 15.0;
     const periodMinutes = 1440 / (revsPerDay || 15.0);
     const periodMs = periodMinutes * 60 * 1000;
@@ -105,7 +118,7 @@ export function generateTrajectorySamples(
 ): TrajectoryPoint[] {
   const points: TrajectoryPoint[] = [];
   try {
-    const satrec = satellite.twoline2satrec(line1.trim(), line2.trim());
+    const satrec = getCachedSatrec(line1, line2);
     const stepMs = stepSeconds * 1000;
 
     for (let t = startMs; t <= endMs; t += stepMs) {

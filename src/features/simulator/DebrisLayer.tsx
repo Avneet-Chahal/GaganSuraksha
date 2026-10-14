@@ -42,13 +42,11 @@ export const DebrisLayer: React.FC = () => {
     return [pos, col];
   }, [count]);
 
-  // Selected or hovered debris object reference for ring & tooltip
+  // Selected debris object reference
   const selectedDebris = useMemo(() => {
     if (!selectedObjectId) return null;
-    return debrisList.find((d) => d.id === selectedObjectId);
+    return debrisList.find((d) => d.id === selectedObjectId) || null;
   }, [selectedObjectId, debrisList]);
-
-  const selectedPosRef = useRef<[number, number, number]>([0, 0, 0]);
 
   // Update positions every frame via SGP4 propagation without causing React re-renders
   useFrame(() => {
@@ -65,10 +63,6 @@ export const DebrisLayer: React.FC = () => {
         array[i * 3] = x;
         array[i * 3 + 1] = y;
         array[i * 3 + 2] = z;
-
-        if (selectedObjectId === item.id) {
-          selectedPosRef.current = [x, y, z];
-        }
       }
     }
     posAttrRef.current.needsUpdate = true;
@@ -81,10 +75,9 @@ export const DebrisLayer: React.FC = () => {
 
   // Clean up geometries on unmount
   useEffect(() => {
+    const points = pointsRef.current;
     return () => {
-      if (pointsRef.current) {
-        pointsRef.current.geometry.dispose();
-      }
+      points?.geometry.dispose();
     };
   }, []);
 
@@ -131,20 +124,39 @@ export const DebrisLayer: React.FC = () => {
         );
       })}
 
-      {/* Selected debris highlight reticle and label */}
-      {selectedDebris && (
-        <group position={selectedPosRef.current}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.07, 0.085, 24]} />
-            <meshBasicMaterial color="#f59e0b" side={THREE.DoubleSide} />
-          </mesh>
-          <Html position={[0, 0.1, 0]} center distanceFactor={15} className="pointer-events-none select-none">
-            <div className="bg-[#0D131D]/90 border border-amber-500/50 rounded px-2 py-0.5 text-[10px] font-mono text-amber-300 whitespace-nowrap shadow-md">
-              {selectedDebris.name} <span className="text-slate-400">#{selectedDebris.noradId}</span>
-            </div>
-          </Html>
-        </group>
-      )}
+      {/* Selected debris highlight reticle and label following target dynamically */}
+      {selectedDebris && <SelectedDebrisMarker debris={selectedDebris} />}
+    </group>
+  );
+};
+
+interface SelectedDebrisMarkerProps {
+  debris: (typeof ALL_SATELLITES_CATALOG)[0];
+}
+
+const SelectedDebrisMarker: React.FC<SelectedDebrisMarkerProps> = ({ debris }) => {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    const simTimeMs = useSimulationStore.getState().simTimeMs;
+    const pv = propagateTleAtTime(debris.tleLine1, debris.tleLine2, simTimeMs);
+    if (pv && groupRef.current) {
+      const [x, y, z] = eciKmToSceneCoords(pv.x, pv.y, pv.z);
+      groupRef.current.position.set(x, y, z);
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.07, 0.085, 24]} />
+        <meshBasicMaterial color="#f59e0b" side={THREE.DoubleSide} />
+      </mesh>
+      <Html position={[0, 0.1, 0]} center distanceFactor={15} className="pointer-events-none select-none">
+        <div className="bg-[#0D131D]/90 border border-amber-500/50 rounded px-2 py-0.5 text-[10px] font-mono text-amber-300 whitespace-nowrap shadow-md">
+          {debris.name} <span className="text-slate-400">#{debris.noradId}</span>
+        </div>
+      </Html>
     </group>
   );
 };
