@@ -1,231 +1,623 @@
-# Gagan Suraksha: Satellite Debris and Collision-Risk Predictor
+# 🛰️ Gagan Suraksha
+### Satellite Debris Monitoring & Collision-Risk Prediction Platform
 
-[![Mission Control](https://img.shields.io/badge/SSA-Space%20Domain%20Awareness-0284c7?style=flat-square)](#)
-[![Status](https://img.shields.io/badge/System-Operational-10b981?style=flat-square)](#)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178c6?style=flat-square)](#)
-[![Three.js](https://img.shields.io/badge/3D%20Engine-React%20Three%20Fiber-047857?style=flat-square)](#)
+<p align="center">
+  <img src="https://img.shields.io/badge/Domain-Space%20Situational%20Awareness-0284c7?style=for-the-badge" alt="Space Situational Awareness"/>
+  <img src="https://img.shields.io/badge/Frontend-React%2019-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React"/>
+  <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/Language-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
+</p>
 
-**Gagan Suraksha** is an aerospace monitoring and collision-risk prediction platform engineered for satellite situational awareness (SSA). It tracks orbital debris populations, predicts close approaches (conjunctions) using ML-corrected orbit covariance, and recommends fuel-optimal Collision Avoidance Maneuvers (CAM).
+<p align="center">
+  <strong>Making Earth's orbital environment easier to visualize, monitor, and analyze.</strong>
+</p>
 
----
+Gagan Suraksha is an aerospace monitoring and collision-risk prediction platform designed to support **Space Situational Awareness (SSA)**. It combines 3D orbital visualization, satellite tracking, conjunction screening, machine-learning-based orbital error correction, and collision avoidance maneuver planning in one integrated interface.
 
-## 1. Design Philosophy
+The platform retrieves public orbital data, propagates satellite trajectories using SGP4, identifies potential close approaches, and provides analytical tools to evaluate collision risk and explore possible avoidance maneuvers.
 
-- **Mission-Control Feel**: Built with a calm, confident, professional aerospace interface adhering to near-black deep space navy (`#070B12`), dark slate surfaces (`#0D131D`), hairline borders (`1px, low-contrast`), and restrained cyan accents (`#38BDF8`).
-- **Data First & Progressive Disclosure**: Every metric includes units, timestamps in UTC, and sensor sources. Labels remain hidden until selected or hovered to avoid visual clutter.
-- **Strict Color Semantics**: Amber and red are used **strictly** for risk status badges and critical alert vectors, paired with textual labels (`Nominal`, `Warning`, `Critical Risk`).
-- **Aerospace Typography**: Inter for user interface labels; JetBrains Mono for coordinates, velocities, timestamps (UTC), and NORAD catalog identifiers.
-- **Subtle Motion**: 150–200 ms restrained transitions; no neon blooms, heavy shadows, or decorative gradients.
-
----
-
-## 2. System Architecture & Tech Stack
-
-- **Core Framework**: React 19 + TypeScript + Vite 8
-- **Styling**: Tailwind CSS v4 with custom aerospace design tokens
-- **3D Visualization**: React Three Fiber + `@react-three/drei` + Three.js
-- **Astrodynamics & SGP4**: `satellite.js` Keplerian / SGP4 propagation engine + Greenwich Mean Sidereal Time (GMST) Earth orientation
-- **State Management**: Zustand (simulation clock, playback rate, camera targets, filter states)
-- **Data Layer**: `@tanstack/react-query` + Axios with 30-second live polling and transparent mock fallback
-- **Data Visualization**: Recharts (clean, high-contrast bar and line performance curves)
+> **Project status:** Engineering prototype and research platform. It is not affiliated with, endorsed by, or officially operated by ISRO.
 
 ---
 
-## 3. Key Features & Page Structure
+## 📑 Table of Contents
 
-### `/simulator` (3D Orbit Simulator — Centrepiece)
-- **Dominant 3D Viewport**: Earth globe with procedural high-resolution ocean/continental mapping, equatorial guide, and custom atmosphere Fresnel rim shader.
-- **Physical GMST Earth Rotation**: Earth rotates in accordance with true sidereal time ($GMST$), not arbitrary frame rates, aligning ECI coordinates with ground tracks.
-- **Instanced Debris & Spacecraft Layers**: High-performance instanced points rendering hundreds of debris fragments at 60 FPS, with distinct accent-highlighted primary satellites.
-- **Object Picking & Tooltips**: Throttled raycasting on hover reveals asset name and NORAD ID; click opens the collapsible telemetry panel.
-- **Close Approach (Conjunction) Visualizer**: When a close approach is selected, both orbital planes are drawn in contrast colors, the exact TCA point is pinned, and a connecting miss-distance vector line is drawn with relative velocity geometry.
-- **Left 48px Compact Toolbar**: Camera focus, reset view, toggle orbit lines (Watchlist / All / Off), toggle debris/satellite layers, cycle orbit regimes (LEO, MEO, GEO, ALL), and demo mode badge.
-- **Right Collapsible Telemetry Panel**: Altitude, speed, inclination, orbital period, operator, TLE epoch, and close approach metrics with direct links to the maneuver planner.
-- **Bottom Playback Bar**: Play/pause, reset to mission epoch, speed selector (1x, 10x, 60x, 600x), live UTC simulation clock, and scrubbable 7-day timeline with close approach event ticks.
-
-### `/conjunctions` (Conjunction Assessment Table)
-- Single mission table displaying object pairs, TCA (UTC), miss distance (km), relative velocity (km/s), calibrated collision probability ($P_c$), and risk badges.
-- Search by satellite name or NORAD catalog number.
-- Filter by risk level (`ALL`, `CRITICAL`, `WARNING`, `NOMINAL`) or watchlist filter.
-- Sortable by TCA, miss distance, and collision probability.
-- Auto-refreshes with a 30-second polling interval with quiet data freshness indicators.
-
-### `/conjunctions/:id` (Event Detail & Maneuver Planner)
-- **Left Column**: Summary of miss distance (radial, in-track, cross-track decomposition), relative velocity, and 1σ covariance position uncertainty.
-- **Classical vs. ML-Corrected Comparison**: Direct side-by-side contrast between classical Foster 2D probability and ML-calibrated probability (correcting for atmospheric drag variations and solar flux).
-- **Interactive Maneuver Planner**:
-  - Impulsive Delta-V ($\Delta V$) slider (0.00 to 1.50 m/s).
-  - Burn lead time selector (TCA - 24h, 12h, 6h, 2h).
-  - Thrust vector direction (Prograde, Retrograde, Radial, Normal).
-  - Live preview of new miss distance, new $P_c$, and propellant mass consumption computed via the Tsiolkovsky rocket equation.
-  - Clear recommendation line (*"Maneuver recommended: 0.38 m/s, 0.42 kg fuel"* or *"Wait and monitor"*).
-  - Collapsible spacecraft mass and $I_{sp}$ assumptions.
-  - Dispatches burn telemetry via `POST /api/maneuver`.
-
-### `/analytics` (Model Performance & Validation)
-- Three large, clean validation charts with plain-language captions:
-  1. **Alerts per month: baseline vs ML-corrected**: Monthly comparisons showing reduction in alerts alongside missed real events count.
-  2. **Probability Calibration (Reliability Curve)**: Forecast risk vs. observed empirical collision frequency aligning with the 1:1 diagonal.
-  3. **Orbit Propagation Error Horizon**: Standard SGP4 drift vs. ML drag-corrected error maintained below Day 7 horizons.
-
-### `/watchlist` (Asset Watchlist & Settings)
-- Add or remove monitored space assets by NORAD ID, name, and orbital regime.
-- Customize safety screening margins (default $P_c$ threshold and miss distance buffer).
-- Configure automated alert dispatch feeds (Email, Telegram Bot, Webhook).
-- View live health status and ingestion latency of surveillance feeds (Space-Track Public TLEs, CelesTrak Archive, NOAA Space Weather, SGP4 Engine, ML Error Correction Service).
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [Application Modules](#-application-modules)
+- [Technology Stack](#-technology-stack)
+- [System Architecture](#-system-architecture)
+- [Getting Started](#-getting-started)
+- [Docker Deployment](#-docker-deployment)
+- [API Reference](#-api-reference)
+- [Machine Learning Pipeline](#-machine-learning-pipeline)
+- [Testing and Validation](#-testing-and-validation)
+- [Security](#-security)
+- [Data Sources and Limitations](#-data-sources-and-limitations)
+- [Project Structure](#-project-structure)
+- [Future Scope](#-future-scope)
+- [Disclaimer](#️-disclaimer)
 
 ---
 
-## 4. Getting Started & Run Steps
+## 🚀 Overview
 
-### Option A: Local Development
+Space is becoming increasingly crowded with operational satellites, inactive spacecraft, and orbital debris. Close approaches between these objects require careful monitoring because inaccurate trajectory predictions and uncertain orbital states can complicate collision-risk assessment.
 
-#### 1. Backend (FastAPI + Python 3.11+)
-```bash
-# Create virtual environment
-python -m venv .venv
+Gagan Suraksha addresses this challenge through an integrated workflow:
 
-# Activate virtual environment
-# Windows (PowerShell):
-.\.venv\Scripts\Activate.ps1
-# Linux / macOS:
-source .venv/bin/activate
+1. **Track:** Retrieve public satellite orbital elements and relevant space-weather information.
+2. **Visualize:** Explore Earth, spacecraft, debris, and orbital trajectories in an interactive 3D environment.
+3. **Screen:** Identify potential conjunction events and evaluate miss distance, relative velocity, and estimated collision probability.
+4. **Predict:** Apply machine-learning-based orbital error correction to estimate propagation drift.
+5. **Analyze:** Compare classical and ML-calibrated collision-risk estimates.
+6. **Plan:** Explore hypothetical collision avoidance maneuvers and their estimated fuel costs.
 
-# Install dependencies
-pip install -r requirements.txt
+### 🎯 Project Objectives
 
-# Run FastAPI server
-uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+- Provide an interactive environment for satellite and debris monitoring.
+- Visualize orbital motion and close-approach geometry.
+- Support conjunction screening and collision-risk assessment.
+- Investigate ML-assisted correction of SGP4 propagation errors.
+- Estimate maneuver-related delta-v, miss-distance changes, and propellant consumption.
+- Present model performance and data freshness through a unified dashboard.
+
+---
+
+## ✨ Key Features
+
+| Feature | Description |
+|---|---|
+| 🌍 Interactive 3D Earth | Explore spacecraft, debris, orbital paths, and close-approach geometry. |
+| 🛰️ Satellite Tracking | Retrieve and monitor orbital objects using public orbital element data. |
+| ⚠️ Conjunction Screening | Review close approaches using TCA, miss distance, relative velocity, and estimated collision probability. |
+| 🧠 ML-Based Error Correction | Predict orbital propagation residuals using gradient-boosted quantile regression. |
+| 🛡️ Maneuver Planning | Explore hypothetical avoidance burns and their estimated fuel costs. |
+| 📊 Model Analytics | Examine probability calibration, alert comparisons, and propagation-error horizons. |
+| 📋 Asset Watchlist | Add monitored objects and customize screening thresholds. |
+| 🔔 Alert Configuration | Configure supported notification channels and collision-alert settings. |
+| 🔄 Live Data Refresh | Refresh orbital and space-weather data through scheduled backend jobs. |
+| 🔐 Secure Webhooks | Apply URL validation, private-address restrictions, timeouts, and credential-safe logging. |
+
+---
+
+## 🖥️ Application Modules
+
+### 1. 3D Orbital Simulator — `/simulator`
+
+The simulator is the primary visualization interface.
+
+- Interactive 3D Earth with procedural surface details and atmospheric rendering.
+- Orbital propagation and Earth orientation using Greenwich Mean Sidereal Time (GMST).
+- Instanced rendering of spacecraft and debris objects.
+- Object selection, hover tooltips, and satellite telemetry.
+- Orbital regime filters: LEO, MEO, GEO, and ALL.
+- Toggleable orbit lines and object layers.
+- Close-approach visualization with orbital planes, TCA markers, and miss-distance vectors.
+- Playback controls with adjustable simulation speed and a seven-day timeline.
+
+### 2. Conjunction Assessment — `/conjunctions`
+
+A structured interface for reviewing potential close approaches.
+
+- Object pairs and NORAD catalog identifiers.
+- Time of Closest Approach (TCA) in UTC.
+- Miss distance and relative velocity.
+- Estimated collision probability (\(P_c\)).
+- Risk-level filtering: Critical, Warning, and Nominal.
+- Search, sorting, and watchlist filtering.
+- Automatic refresh with data-freshness indicators.
+
+### 3. Event Details & Maneuver Planner — `/conjunctions/:id`
+
+Analyze individual conjunction events and explore hypothetical avoidance maneuvers.
+
+**Conjunction analysis**
+- Radial, in-track, and cross-track miss-distance components.
+- Relative velocity and estimated position uncertainty.
+- Classical Foster 2D versus ML-calibrated collision-probability comparison.
+
+**Maneuver simulation**
+- Delta-v selection from 0.00 to 1.50 m/s.
+- Burn lead-time options: TCA − 24h, 12h, 6h, and 2h.
+- Thrust directions: Prograde, Retrograde, Radial, and Normal.
+- Estimated post-maneuver miss distance and collision probability.
+- Propellant consumption estimation using the Tsiolkovsky rocket equation.
+- Maneuver recommendations based on the application's modeled assumptions.
+
+The interface also supports dispatching maneuver telemetry through `POST /api/maneuver`.
+
+### 4. Analytics Dashboard — `/analytics`
+
+Understand the behavior of the prediction and screening pipeline through three primary visualizations.
+
+1. **Alert Comparison:** Baseline versus ML-corrected alert counts, including missed-event indicators where available.
+2. **Probability Calibration:** Predicted collision probability compared with empirical event frequency.
+3. **Propagation Error Horizon:** Comparison of standard SGP4 propagation drift and ML-corrected error across forecast horizons.
+
+The metrics endpoint may return sample data and explicitly identifies demo metrics using `isDemo: true`.
+
+### 5. Asset Watchlist & Settings — `/watchlist`
+
+Manage monitored orbital objects and screening configuration.
+
+- Add or remove objects using NORAD IDs and names.
+- Select orbital regimes and configure screening thresholds.
+- Set collision-alert thresholds.
+- Configure supported email, Telegram, and webhook notification channels.
+- Review the reported health and ingestion latency of available data services.
+
+---
+
+## 🛠️ Technology Stack
+
+### Frontend
+
+| Technology | Purpose |
+|---|---|
+| React 19 | Component-based user interface |
+| TypeScript | Typed application logic and API contracts |
+| Vite 8 | Development server and build tooling |
+| Tailwind CSS v4 | Styling and design system |
+| Three.js | 3D rendering |
+| React Three Fiber | React-based 3D scene management |
+| `@react-three/drei` | 3D utilities and helpers |
+| Zustand | Simulation state management |
+| TanStack Query | Data fetching, caching, and polling |
+| Axios | HTTP communication |
+| Recharts | Analytics visualizations |
+
+### Backend
+
+| Technology | Purpose |
+|---|---|
+| Python | Backend and ML implementation |
+| FastAPI | REST API and OpenAPI documentation |
+| Uvicorn | ASGI server |
+| SQLAlchemy | Database access and ORM |
+| SQLite | Local and prototype persistence |
+| Pydantic | Data validation and API schemas |
+| APScheduler | Scheduled background tasks |
+| HTTPX | External API communication |
+
+### Orbital Mechanics & Machine Learning
+
+- **SGP4:** Satellite trajectory propagation from Two-Line Element (TLE) data.
+- **GMST:** Earth orientation for orbital visualization.
+- **NumPy and SciPy:** Numerical computation.
+- **Pandas:** Dataset preparation and processing.
+- **Scikit-learn:** Supporting ML utilities and evaluation.
+- **XGBoost:** Quantile regression for orbital propagation residuals.
+- **Joblib:** Model artifact serialization.
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TD
+    A["Public Orbital Data<br/>CelesTrak TLEs"]
+    B["Space Weather Data<br/>Solar Flux and Geomagnetic Indices"]
+    C["FastAPI Backend"]
+    D["Data Ingestion and Storage"]
+    E["SGP4 Orbit Propagation"]
+    F["Conjunction Screening"]
+    G["ML Orbital Error Correction"]
+    H["Collision Risk Assessment"]
+    I["Maneuver Planning"]
+    J["REST API"]
+    K["React + TypeScript Frontend"]
+    L["3D Simulator and Dashboard"]
+    M["Analytics and Watchlist"]
+    N["Configured Alert Channels"]
+
+    A --> D
+    B --> D
+    D --> C
+    C --> E
+    E --> F
+    G --> F
+    F --> H
+    H --> I
+    C --> J
+    J --> K
+    K --> L
+    K --> M
+    H --> N
 ```
-The Core API will be available at `http://127.0.0.1:8000/api` with interactive OpenAPI Swagger docs at `http://127.0.0.1:8000/docs`.
 
-#### 2. Frontend (React 19 + Vite 8)
+### Data Flow
+
+1. Public orbital and space-weather data are retrieved by the backend.
+2. Satellite states are propagated using SGP4.
+3. Conjunction screening evaluates candidate close approaches.
+4. ML-based error correction supports modeled trajectory uncertainty analysis.
+5. Collision-risk calculations produce screening estimates.
+6. The API exposes satellite, conjunction, maneuver, watchlist, and analytics data.
+7. The frontend renders the results in the simulator and dashboard.
+
+---
+
+## ⚙️ Getting Started
+
+### Prerequisites
+
+Install the following before running the project:
+
+- Python 3.11 or newer.
+- Node.js and npm.
+- Git.
+- A modern web browser.
+
+For containerized deployment, install Docker Desktop with Docker Compose support.
+
+### 1. Clone the repository
+
+Replace the example URL with your actual GitHub repository URL.
+
 ```bash
-# Install frontend dependencies
-npm install
+git clone https://github.com/YOUR-USERNAME/GaganSuraksha.git
+cd GaganSuraksha
+```
 
-# Start Vite development server
+Ensure that you are inside the directory containing `requirements.txt` and `package.json`.
+
+### 2. Set up the Python backend
+
+Create a virtual environment:
+
+```bash
+python -m venv .venv
+```
+
+Activate it on Windows Command Prompt:
+
+```cmd
+.venv\Scripts\activate.bat
+```
+
+On Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+On Linux or macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Install the Python dependencies:
+
+```bash
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 3. Start the backend
+
+From the project root, run:
+
+```bash
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+The API should be available at:
+
+- **API base:** http://127.0.0.1:8000/api
+- **Interactive API documentation:** http://127.0.0.1:8000/docs
+- **Health check:** http://127.0.0.1:8000/api/health
+
+Keep this terminal running.
+
+### 4. Set up the frontend
+
+Open a second terminal and navigate to the project root.
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
+
+```bash
 npm run dev
 ```
-Open `http://localhost:5174` (or `http://localhost:5173`) in your browser.
+
+Open the local URL printed by Vite, typically:
+
+- http://localhost:5173
+- or http://localhost:5174
+
+The exact port depends on the local Vite configuration and port availability.
+
+### 5. Verify the installation
+
+Check that:
+
+- The backend starts without import or configuration errors.
+- The health endpoint returns a successful response.
+- The frontend loads in your browser.
+- The frontend can communicate with the backend.
+- The simulator, conjunction table, analytics, and watchlist load their available data.
 
 ---
 
-### Option B: Docker & Docker Compose
+## 🐳 Docker Deployment
 
-Launch the containerized backend with persistent SQLite volume storage:
+The project includes Docker configuration for containerized backend deployment.
+
+Build and start the configured services:
 
 ```bash
-# Build and run API container
 docker compose up --build
+```
 
-# Run in background detached mode
+Run in detached mode:
+
+```bash
 docker compose up -d
 ```
-The SQLite database file is mounted persistently to the named volume `gagan_suraksha_sqlite_data` under `/app/data/gagan_suraksha.db`.
 
----
-
-## 5. Test Suite & Quality Verification
-
-Run the full Python test suite (48 tests covering SGP4 propagation, Foster 2D collision probability, Tsiolkovsky rocket dynamics, SSRF webhook protection, alert deduplication, and REST endpoints):
+View service logs:
 
 ```bash
-# Run backend pytest suite
-pytest -v
-
-# Run frontend linting and typechecking
-npm run lint
-npm run build
+docker compose logs -f
 ```
 
----
+Stop the services:
 
-## 6. Complete API Endpoint Reference
-
-All endpoints return JSON responses with `camelCase` field names conforming to the frontend schema contracts. All endpoints are mounted strictly under the `/api` prefix.
-
-| Method | Endpoint | Parameters / Body | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/health` | None | Operational health probe (`ONLINE`). |
-| `GET` | `/api/satellites` | `regime`, `is_indian`, `is_watchlist`, `type`, `limit` | Returns tracked satellites, orbital elements, and TLEs (`SatelliteRecord[]`). |
-| `GET` | `/api/trajectories` | `ids` (max 20), `start`, `end` (max 7d), `step` (sec) | High-precision SGP4 ECI propagation points with velocities. |
-| `GET` | `/api/conjunctions` | `risk_level`, `min_pc`, `max_miss_km`, `watchlist_only` | Screened close approach events sorted chronologically by TCA. |
-| `GET` | `/api/conjunctions/{id}` | Path: `id` | Single conjunction event details, RTN vector decomposition, and covariance. |
-| `POST` | `/api/maneuver` | Body: `ManeuverRequest` (`conjunctionId`, `deltaVMs`, `burnTimeUtc`, `direction`, `spacecraftMassKg`, `ispSeconds`) | CAM planner: Tsiolkovsky fuel cost, CW along-track separation gain, recomputed $P_c$, and clearance classification (`OPTIMAL`, `ACCEPTABLE`, `SUBOPTIMAL`). |
-| `GET` | `/api/watchlist` | Query: `active_only` (optional) | Monitored space assets under active surveillance (`WatchlistItemRecord[]`). |
-| `POST` | `/api/watchlist` | Body: `WatchlistItemCreate` (`noradId`, `name`, `regime`, `customPcThreshold`, `customMissDistanceKm`) | Adds/updates asset on watchlist and marks satellite `isWatchlist = true`. |
-| `DELETE` | `/api/watchlist/{id}` | Path: `id` or Query: `id`, `norad_id` | Removes asset from collision watchlist and updates satellite record. |
-| `GET` | `/api/alert-settings` | None | Collision alert thresholds and dispatch channel configuration. |
-| `PUT` | `/api/alert-settings` | Body: `AlertSettingsUpdate` | Updates alert thresholds. Validates webhook URL with strict **SSRF safety**. |
-| `GET` | `/api/metrics` | None | Model performance metrics: false alarm reduction, reliability curve, error horizon. Returns `"isDemo": true` for sample data. |
-| `GET` | `/api/sources` | None | Real operational feed status: **CelesTrak TLE Ingestion** and **SGP4 Engine** (no invented sources). |
-
----
-
-## 7. Security & SSRF Protection
-
-Outgoing alert notifications implement strict security safeguards:
-- **SSRF Prevention**: Webhook URLs must use HTTPS. Target hostnames are resolved via DNS and verified against private (RFC 1918 / RFC 4193), loopback (`127.0.0.1`, `::1`), link-local (`169.254.0.0/16`), and cloud metadata (`169.254.169.254`, `metadata.google.internal`) blacklists. Invalid targets return **HTTP 422**.
-- **Credential Protection**: Webhook URLs containing embedded user credentials (`user:pass@`) are strictly rejected.
-- **DNS-Rebinding Mitigation**: Webhook URLs and destination IPs are re-validated immediately before dispatch.
-- **Masked Logging**: Authorization secrets, Telegram bot tokens, passwords, and full webhook URLs with query parameters are **never logged**.
-- **Timeouts**: All external network requests enforce a strict **5-second timeout**.
-- **Alert Deduplication**: Conjunction IDs are tracked in `sent_alerts` to prevent duplicate dispatches across repeated screening runs.
-
----
-
-## 8. Machine Learning TLE Error-Correction Pipeline
-
-Gagan Suraksha includes a physics-informed gradient boosted quantile regression pipeline to predict and correct SGP4 orbital propagation drift over 1-day to 7-day horizons.
-
-### Architecture & Physics
-- **Orbit Error Decomposition**: Satellite position residuals $\Delta \vec{r} = \vec{r}_{\text{prop}} - \vec{r}_{\text{ref}}$ are mapped directly into the satellite's orbital **RTN (Radial, In-track / Along-track, Cross-track / Normal)** reference frame:
-  $$\hat{r} = \frac{\vec{r}}{\|\vec{r}\|}, \quad \hat{n} = \frac{\vec{r} \times \vec{v}}{\|\vec{r} \times \vec{v}\|}, \quad \hat{t} = \hat{n} \times \hat{r}$$
-- **Atmospheric Drag & Space Weather Features**:
-  - Orbit state: Horizon ($\Delta t$ hours), altitude ($h$ km), Kozai mean motion ($n$), inclination ($i$), eccentricity ($e$), and ballistic drag coefficient ($B^*$).
-  - Space Weather: Daily $10.7\text{ cm}$ solar flux ($F_{10.7}$), 81-day centered solar flux average ($F_{10.7, 81\text{d}}$), geomagnetic planetary index at epoch ($K_p, A_p$), and mean geomagnetic indices over the propagation interval.
-- **Quantile XGBoost Models**:
-  - Independent gradient boosted tree ensembles for each spatial target (`residual_radial_km`, `residual_in_track_km`, `residual_cross_track_km`).
-  - Quantiles evaluated at $\alpha = 0.10$, $\alpha = 0.50$ (median state correction), and $\alpha = 0.90$ (upper $1\sigma$ equivalent uncertainty bound) using native pinball loss (`reg:quantileerror`).
-- **Leak-Free Temporal Split**:
-  - Strictly chronological time-based split: for each satellite, earlier lifespan records form the **Train set (70%)**, middle periods form the **Validation set (15%)**, and most recent periods form the **Test set (15%)**.
-  - **Zero temporal leakage**: No test sample contains future data leaking backward into training.
-- **Evaluation & Artifacts**:
-  - Model serialization: `backend/app/ml/models/tle_error_xgb_v1.0.0.joblib`
-  - Real computed metadata: `backend/app/ml/models/metadata.json` (real Day 1 to Day 7 medians, 90th percentiles, and sample sizes).
-  - Colab Notebook: `notebooks/tle_error_correction_training.ipynb` (interactive training, visualization, and error horizon curves).
-
-### Running Model Training
 ```bash
-# Execute ML pipeline locally with disk caching
-python backend/app/ml/train.py
+docker compose down
+```
 
-# Optional: provide Space-Track credentials to supplement CelesTrak archives
+The configured SQLite storage uses a named Docker volume, `gagan_suraksha_sqlite_data`, mounted at `/app/data/gagan_suraksha.db`.
+
+Check `docker-compose.yml` for the exact services, ports, environment variables, and volume configuration before deployment.
+
+---
+
+## 🔌 API Reference
+
+All application endpoints are mounted under the `/api` prefix and return JSON responses.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/api/health` | Backend health status |
+| `GET` | `/api/satellites` | Retrieve tracked satellites and orbital data |
+| `GET` | `/api/trajectories` | Retrieve SGP4-propagated trajectory points |
+| `GET` | `/api/conjunctions` | Retrieve screened close-approach events |
+| `GET` | `/api/conjunctions/{id}` | Retrieve a specific conjunction and its details |
+| `POST` | `/api/maneuver` | Evaluate a hypothetical collision avoidance maneuver |
+| `GET` | `/api/watchlist` | Retrieve monitored assets |
+| `POST` | `/api/watchlist` | Add or update a monitored asset |
+| `DELETE` | `/api/watchlist/{id}` | Remove a watchlist asset |
+| `GET` | `/api/alert-settings` | Retrieve alert configuration |
+| `PUT` | `/api/alert-settings` | Update alert thresholds and dispatch configuration |
+| `GET` | `/api/metrics` | Retrieve model-performance metrics |
+| `GET` | `/api/sources` | Retrieve reported data-source and engine status |
+
+### Example: Health Check
+
+```bash
+curl http://127.0.0.1:8000/api/health
+```
+
+### Example: Retrieve Satellites
+
+```bash
+curl "http://127.0.0.1:8000/api/satellites?limit=20"
+```
+
+For complete request schemas, supported query parameters, and response examples, run the backend and visit:
+
+**http://127.0.0.1:8000/docs**
+
+---
+
+## 🧠 Machine Learning Pipeline
+
+Gagan Suraksha includes a physics-informed, gradient-boosted quantile regression pipeline for estimating and correcting SGP4 orbital propagation residuals over forecast horizons of one to seven days.
+
+### Orbital Error Decomposition
+
+Position residuals are represented as:
+
+\[
+\Delta \vec{r} = \vec{r}_{\mathrm{prop}} - \vec{r}_{\mathrm{ref}}
+\]
+
+The residuals are mapped into the orbital RTN reference frame:
+
+- **Radial (R):** Along the radial direction.
+- **In-track (T):** Along the orbital direction of motion.
+- **Cross-track (N):** Normal to the orbital plane.
+
+### Model Inputs
+
+The feature pipeline includes:
+
+- Forecast horizon and altitude.
+- Mean motion, inclination, and eccentricity.
+- Ballistic drag coefficient \(B^*\).
+- Solar radio flux \(F_{10.7}\) and its centered 81-day average.
+- Geomagnetic indices, including \(K_p\) and \(A_p\).
+- Space-weather summaries over the propagation interval.
+
+### Model Design
+
+- Separate XGBoost quantile regression models for radial, in-track, and cross-track residuals.
+- Quantiles at 0.10, 0.50, and 0.90 using quantile loss.
+- Chronological training, validation, and testing splits of 70%, 15%, and 15%.
+- Temporal separation intended to prevent future information from leaking into training.
+- Serialized model artifacts and evaluation metadata.
+
+### Training the Model
+
+Run the training pipeline from the project root:
+
+```bash
+python backend/app/ml/train.py
+```
+
+Optional Space-Track credentials may be supplied through the script's supported command-line arguments:
+
+```bash
 python backend/app/ml/train.py --spacetrack-user <USER> --spacetrack-password <PASS>
 ```
 
----
+Use environment variables or a secure local configuration when appropriate. Never commit real credentials to source control.
 
-## 9. Data Sources and Limitations
+The associated training notebook is:
 
-> [!IMPORTANT]
-> **Prototype Disclaimer**: Gagan Suraksha is an engineering prototype and research platform. It is **not affiliated with, endorsed by, or officially operated by the Indian Space Research Organisation (ISRO)**.
-
-1. **Orbital Ephemeris & TLEs**:
-   - Two-Line Element (TLE) sets are retrieved from the public **CelesTrak GP API** and historical archives (`https://celestrak.org`).
-   - TLE data represent general perturbations mean elements intended for SGP4 analytical propagation. They are subject to atmospheric drag uncertainties and orbital decay modeling limits.
-2. **Reference Truth for ML Evaluation**:
-   - In the absence of classified Space Surveillance Network (SSN) radar observations or high-precision numerical Conjunction Data Messages (CDMs), **reference truth is established using subsequent TLE epoch states** evaluated with SGP4.
-   - SGP4 itself possesses an intrinsic noise floor of $\sim 1\text{ km}$; ML corrections are most effective over multi-day horizons (Day 4 to 7) where unmodeled atmospheric drag causes hundreds to thousands of kilometers of along-track drift.
-3. **Covariance Estimation**:
-   - Standard public TLEs **do not include state covariance matrices** (unlike operational Space-Track / ISRO Conjunction Data Messages).
-   - Position uncertainty ($\sigma_R, \sigma_T, \sigma_N$) is estimated via an empirical uncertainty growth model factoring in TLE epoch age and forecast lead time to TCA. Values are explicitly flagged as estimates in the `dataQualityNote` field.
-4. **Collision Probability ($P_c$)**:
-   - Collision probability is computed using the **Foster 2D encounter plane model** assuming spherical hard-body radius (default 10 m) and Gaussian positional uncertainty.
-   - Values are approximations for screening prioritization and should not replace high-precision numerical ephemeris / Special Perturbations (SP) covariance analysis in real operational mission control.
+`notebooks/tle_error_correction_training.ipynb`
 
 ---
 
-*Gagan Suraksha — Prototype Satellite Debris & Conjunction-Risk Prediction System.*
+## 🧪 Testing and Validation
 
+Run the backend test suite:
+
+```bash
+pytest -v
+```
+
+Run frontend linting:
+
+```bash
+npm run lint
+```
+
+Build the frontend for production:
+
+```bash
+npm run build
+```
+
+The project documentation describes a 48-test backend suite covering areas including:
+
+- SGP4 propagation.
+- Foster 2D collision-probability calculations.
+- Tsiolkovsky rocket dynamics.
+- SSRF webhook protection.
+- Alert deduplication.
+- REST API endpoints.
+
+These are documented test targets; run the commands above to verify the current state of the code.
+
+---
+
+## 🔐 Security
+
+The application implements several safeguards for outgoing alert notifications and webhook configuration:
+
+- HTTPS-only webhook URL validation.
+- DNS resolution and checks against private, loopback, link-local, and cloud metadata addresses.
+- Rejection of webhook URLs containing embedded credentials.
+- Destination revalidation before dispatch to mitigate DNS-rebinding risks.
+- Five-second timeouts for external network requests.
+- Masked logging for secrets, passwords, bot tokens, and sensitive webhook URL parameters.
+- Alert deduplication to reduce repeated notifications for the same conjunction.
+
+### Security Best Practices
+
+- Never commit `.env` files or API credentials.
+- Keep `.env.example` limited to placeholder values.
+- Exclude local virtual environments, `node_modules`, databases, and generated artifacts when they should not be shared.
+- Review Docker configuration before exposing services to a network.
+- Treat collision-risk estimates as analytical screening outputs, not operational flight commands.
+
+---
+
+## 🌐 Data Sources and Limitations
+
+### Orbital Data
+
+Public Two-Line Element sets are retrieved from the CelesTrak GP API and historical archives.
+
+TLE data are designed for general perturbations propagation with SGP4 and are subject to uncertainties, including atmospheric drag and orbital decay.
+
+### Space Weather
+
+The system uses available solar-flux and geomagnetic indices to support orbital error modeling.
+
+### Reference Data for ML Evaluation
+
+Without classified radar observations or high-precision numerical Conjunction Data Messages, the documented evaluation approach uses subsequent TLE epoch states propagated with SGP4 as reference states.
+
+Consequently, the model learns against an imperfect reference and does not establish independently verified orbital truth.
+
+### Covariance and Collision Probability
+
+- Public TLEs do not provide the full state covariance information available in some operational conjunction data products.
+- Position uncertainty is estimated using an empirical growth model based on TLE age and forecast lead time.
+- Collision probability uses the Foster 2D encounter-plane model with a spherical hard-body radius and Gaussian positional uncertainty assumptions.
+
+**Important:** These estimates support research and screening prioritization. They should not replace high-precision ephemeris, validated covariance analysis, or qualified operational collision-avoidance procedures.
+
+---
+
+## 📁 Project Structure
+
+The main project components are organized as follows:
+
+```text
+GaganSuraksha/
+├── backend/                 # FastAPI application and backend logic
+├── services/                # Screening and risk-related services
+├── src/                     # React + TypeScript frontend
+│   ├── api/                  # API clients and data types
+│   ├── components/           # Shared UI components
+│   ├── features/             # Simulator and feature modules
+│   ├── pages/                # Application pages
+│   └── store/                # Simulation state management
+├── ml/                      # ML-related project assets
+├── notebooks/                # Model training and analysis notebooks
+├── tests/                    # Automated tests
+├── public/                   # Static frontend assets
+├── requirements.txt          # Python dependencies
+├── package.json              # Node.js dependencies and scripts
+├── Dockerfile                # Container build configuration
+├── docker-compose.yml         # Container orchestration
+├── index.html                # Frontend HTML entry point
+├── .env.example              # Safe configuration template
+└── README.md                 # Project documentation
+```
+
+Some additional directories and model artifacts may be present depending on the current project version.
+
+---
+
+## 🔮 Future Scope
+
+Potential future improvements include:
+
+- Integration with additional verified orbital data providers.
+- More rigorous uncertainty propagation and covariance estimation.
+- Independent validation against higher-precision reference ephemerides.
+- Expanded model evaluation across satellite classes and orbital regimes.
+- Improved alert delivery monitoring and operational observability.
+- Reproducible model-training pipelines and automated evaluation reports.
+- Deployment hardening, authentication, and role-based access controls.
+
+These are potential enhancements, not claims that all capabilities are currently implemented.
+
+---
+
+## ⚠️ Disclaimer
+
+Gagan Suraksha is an engineering prototype and research platform for satellite situational awareness, orbital visualization, conjunction screening, and collision-risk analysis.
+
+It is **not affiliated with, endorsed by, or officially operated by the Indian Space Research Organisation (ISRO)**.
+
+Its trajectory predictions, uncertainty estimates, collision probabilities, and maneuver calculations depend on the available data, modeling assumptions, and software implementation. They are not certified operational guidance and must not be used as the sole basis for real spacecraft maneuver decisions.
+
+---
+
+<p align="center">
+  <strong>Gagan Suraksha</strong><br/>
+  Exploring safer and more informed orbital operations through visualization, astrodynamics, and machine learning.
+</p>
