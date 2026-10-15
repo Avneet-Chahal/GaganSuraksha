@@ -321,7 +321,7 @@ Start the development server:
 npm run dev
 ```
 
-Open the local URL printed by Vite, typically:
+Open the local URL printed by Vite.
 
 
 
@@ -405,9 +405,7 @@ curl http://127.0.0.1:8000/api/health
 curl "http://127.0.0.1:8000/api/satellites?limit=20"
 ```
 
-For complete request schemas, supported query parameters, and response examples, run the backend and visit:
-
-**http://127.0.0.1:8000/docs**
+For complete request schemas, supported query parameters, and response examples, run the backend.
 
 ---
 
