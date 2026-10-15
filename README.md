@@ -598,6 +598,15 @@ These are potential enhancements, not claims that all capabilities are currently
 
 ---
 
+
+## 🔗 Live Links
+
+- **Live Frontend:** https://gagansuraksha.vercel.app
+- **Backend API:** https://gagansuraksha.onrender.com
+- **API Documentation (Swagger):** https://gagansuraksha.onrender.com/docs
+
+---
+
 ## ⚠️ Disclaimer
 
 Gagan Suraksha is an engineering prototype and research platform for satellite situational awareness, orbital visualization, conjunction screening, and collision-risk analysis.
