@@ -256,7 +256,7 @@ For containerized deployment, install Docker Desktop with Docker Compose support
 Replace the example URL with your actual GitHub repository URL.
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/GaganSuraksha.git
+git clone https://github.com/Avneet-Chahal/GaganSuraksha.git
 cd GaganSuraksha
 ```
 
