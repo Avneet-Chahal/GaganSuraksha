@@ -303,12 +303,6 @@ From the project root, run:
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-The API should be available at:
-
-- **API base:** http://127.0.0.1:8000/api
-- **Interactive API documentation:** http://127.0.0.1:8000/docs
-- **Health check:** http://127.0.0.1:8000/api/health
-
 Keep this terminal running.
 
 ### 4. Set up the frontend
@@ -329,8 +323,7 @@ npm run dev
 
 Open the local URL printed by Vite, typically:
 
-- http://localhost:5173
-- or http://localhost:5174
+
 
 The exact port depends on the local Vite configuration and port availability.
 
